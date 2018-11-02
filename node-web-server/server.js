@@ -1,25 +1,44 @@
 const express = require('express')
+const hbs = require('hbs')
+const fs = require('fs')
 
 const app = express()
 
-app.use(
-  express.static(__dirname + '/public')
-)
+// Handlebars
+hbs.registerPartials(__dirname + '/views/partials')
+hbs.registerHelper('getCurrentYear', () => new Date().getFullYear())
+hbs.registerHelper('screamIt', (text) => text.toUpperCase())
+app.set('view engine', 'hbs')
 
-app.get('/', (req, res) => {
-  res.send('<h1>Hello Express</h1>')
+// Middleware
+app.use(express.static(__dirname + '/public'))
+
+app.use((req, res, next) => {
+  const now = new Date().toString()
+  const log = `${now}: ${req.method} ${req.url}`
+
+  fs.appendFile('server.log', log + '\n', (err) => {
+    if (err) console.log(err)
+  })
+  console.log(log)
+  next()
 })
 
-app.get('/about', (req, res) => {
-  res.send({
-    name: 'Pieter',
-    likes: ['Planes', 'Cars', 'Bikes']
+// app.use((req, res) => {
+//   res.render('maintenance.hbs')
+// })
+
+// Routing
+app.get('/', (req, res) => {
+  res.render('home.hbs', {
+    pageTitle: 'Home',
+    welcomeMessage: 'Node Express Course',
   })
 })
 
-app.get('/bad', (req, res) => {
-  res.status(400).json({
-    errorMessage: 'Something went wrong.'
+app.get('/about', (req, res) => {
+  res.render('about.hbs', {
+    pageTitle: 'About Page',
   })
 })
 
