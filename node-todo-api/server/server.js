@@ -1,4 +1,3 @@
-const _ = require('lodash')
 const express = require('express');
 const bodyParser = require('body-parser');
 
@@ -64,12 +63,11 @@ app.delete('/todos/:id', (req, res) => {
 
 app.patch('/todos/:id', (req, res) => {
   const {id} = req.params
-  const body = _.pick(req.body, ['text', 'completed'])
-  console.log(body)
+  const {body} = req
 
   if (!ObjectId.isValid(id)) return res.status(404).send('Invalid id')
 
-  if(_.isBoolean(body.completed) && body.completed) {
+  if(typeof body.completed === "boolean" && body.completed) {
     body.completedAt = new Date().getTime()
   } else {
     body.completed = false
