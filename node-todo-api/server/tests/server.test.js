@@ -6,8 +6,16 @@ const {app} = require('./../server')
 const {Todo} = require('./../models/todo')
 
 const todos = [
-  {_id: new ObjectID(), text: 'Test todo text'},
-  {_id: new ObjectID(), text: 'Do laundry'}
+  {
+    _id: new ObjectID(),
+    text: 'Test todo text'
+  },
+  {
+    _id: new ObjectID(),
+    text: 'Do laundry',
+    completed: true,
+    completedAt: 1200
+  }
 ]
 
 beforeEach(done => {
@@ -131,5 +139,33 @@ describe('DELETE /todos/:id', () => {
       .expect(404)
       .end(done)
   })
+})
 
+describe('PATCH /todos/:id', () => {
+  it('Should update the todo', done => {
+    const hexId = todos[0]._id.toHexString()
+    request(app)
+      .patch(`/todos/${hexId}`)
+      .send({text: 'My patched todo', completed: true})
+      .expect(200)
+      .expect(res => {
+        const {text, completed} = res.body.todo
+        expect(text).toBe('My patched todo')
+        expect(completed).toBe(true)
+      })
+      .end(done)
+  })
+
+  it('Should clear completedAt when todo is not completed', done => {
+    const hexId = todos[1]._id.toHexString()
+    request(app)
+      .patch(`/todos/${hexId}`)
+      .send({text: 'My patched todo', completed: false})
+      .expect(200)
+      .expect(res => {
+        const {text, completed} = res.body.todo
+        expect(text).toBe('My patched todo')
+      })
+      .end(done)
+  })
 })
