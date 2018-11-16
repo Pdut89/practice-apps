@@ -24,7 +24,7 @@ app.post('/todos', (req, res) => {
       res.send(todo)
     })
     .catch(err => {
-      res.status(404).send(err)
+      res.status(400).send(err)
     })
 })
 
@@ -34,35 +34,35 @@ app.get('/todos', (req, res) => {
       res.send({todos})
     })
     .catch(err => {
-      res.status(404).send(err)
+      res.status(400).send(err)
     })
 })
 
 app.get('/todos/:id', (req, res) => {
   const {id} = req.params
-  if (!ObjectId.isValid(id)) return res.status(404).send('Invalid id')
+  if (!ObjectId.isValid(id)) return res.status(400).send('Invalid id')
 
   Todo.findById(id)
     .then(todo => {
-      if(!todo) return res.status(404).send('No match found')
+      if(!todo) return res.status(400).send('No match found')
       res.send(todo)
     })
     .catch(err => {
-      res.status(404).send(err)
+      res.status(400).send(err)
     })
 })
 
 app.delete('/todos/:id', (req, res) => {
   const {id} = req.params
-  if (!ObjectId.isValid(id)) return res.status(404).send('Invalid id')
+  if (!ObjectId.isValid(id)) return res.status(400).send('Invalid id')
 
   Todo.findByIdAndDelete(id)
     .then(todo => {
-      if(!todo) return res.status(404).send('No match found')
+      if(!todo) return res.status(400).send('No match found')
       res.send({todo})
     })
     .catch(err => {
-      res.status(404).send(err)
+      res.status(400).send(err)
     })
 })
 
@@ -70,7 +70,7 @@ app.patch('/todos/:id', (req, res) => {
   const {id} = req.params
   const {body} = req
 
-  if (!ObjectId.isValid(id)) return res.status(404).send('Invalid id')
+  if (!ObjectId.isValid(id)) return res.status(400).send('Invalid id')
 
   if(typeof body.completed === "boolean" && body.completed) {
     body.completedAt = new Date().getTime()
@@ -81,7 +81,7 @@ app.patch('/todos/:id', (req, res) => {
 
   Todo.findByIdAndUpdate(id, {$set: body}, {new: true})
     .then(todo => {
-      if (!todo) return res.status(404).send()
+      if (!todo) return res.status(400).send()
       res.send({todo})
     })
     .catch(err => {

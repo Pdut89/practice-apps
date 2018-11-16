@@ -3,28 +3,14 @@ const request = require('supertest')
 
 const {ObjectID} = require('mongodb')
 const {app} = require('./../server')
+
 const {Todo} = require('./../models/todo')
+const {User} = require('./../models/user')
 
-const todos = [
-  {
-    _id: new ObjectID(),
-    text: 'Test todo text'
-  },
-  {
-    _id: new ObjectID(),
-    text: 'Do laundry',
-    completed: true,
-    completedAt: 1200
-  }
-]
+const {todos, users, populateTodos, populateUsers} = require('./seed/seed')
 
-beforeEach(done => {
-  Todo.deleteMany({})
-  .then(() => {
-    return Todo.insertMany(todos)
-  })
-  .then(() => done())
-})
+beforeEach(populateUsers)
+beforeEach(populateTodos)
 
 describe('GET /todos', () => {
   it('Should return all todos', done => {
@@ -49,17 +35,17 @@ describe('GET /todos/:id', () => {
       .end(done)
   })
 
-  it('Should return a 404 with invalid id', done => {
+  it('Should return a 400 with invalid id', done => {
     request(app)
       .get('/todos/12345')
-      .expect(404)
+      .expect(400)
       .end(done)
   })
 
-  it('Should return a 404 with no matching id', done => {
+  it('Should return a 400 with no matching id', done => {
     request(app)
       .get('/todos/5be0330e78537d8cac5463bf')
-      .expect(404)
+      .expect(400)
       .end(done)
   })
 })
@@ -126,17 +112,17 @@ describe('DELETE /todos/:id', () => {
       })
   })
 
-  it('Should return a 404 if id is not found', done => {
+  it('Should return a 400 if id is not found', done => {
     request(app)
       .delete(`/todos/5be0330e78537d8cac5463bf`)
-      .expect(404)
+      .expect(400)
       .end(done)
   })
 
-  it('Should return a 404 if id is invalid', done => {
+  it('Should return a 400 if id is invalid', done => {
     request(app)
       .delete(`/todos/12345`)
-      .expect(404)
+      .expect(400)
       .end(done)
   })
 })
@@ -166,6 +152,82 @@ describe('PATCH /todos/:id', () => {
         const {text, completed} = res.body.todo
         expect(text).toBe('My patched todo')
       })
+      .end(done)
+  })
+})
+
+describe('GET /users/me', () => {
+  it('Should return user if authenticated', done => {
+    request(app)
+      .get('/users/me')
+      .set('x-auth', users[0].tokens[0].token)
+      .expect(200)
+      .expect(res => {
+        expect(res.body._id).toBe(users[0]._id.toHexString())
+        expect(res.body.email).toBe(users[0].email)
+      })
+      .end(done)
+  })
+
+  it('Should return a 401 if not authenticated', done => {
+    request(app)
+      .get('/users/me')
+      .expect(401)
+      .expect(res => {
+        expect(res.body.name).toBe('JsonWebTokenError')
+      })
+      .end(done)
+  })
+})
+
+describe('POST /users', () => {
+  it('Should create a test user', done => {
+    const email = 'test@gmail.com'
+    const password = '123abc'
+
+    request(app)
+      .post('/users')
+      .send({email, password})
+      .expect(200)
+      .expect(res => {
+        expect(res.headers['x-auth']).toBeTruthy()
+        expect(res.body._id).toBeTruthy()
+        expect(res.body.email).toBe(email)
+      })
+      .end(err => {
+        if(err) return done(err)
+
+        User.findOne({email})
+          .then(user => {
+            expect(user).toBeTruthy()
+            expect(user.password).not.toBe(password)
+            done()
+          })
+          .catch((err) => {
+            done(err)
+          })
+      })
+  })
+
+  it('Should return validation errors if request invalid', done => {
+    const email = 'test'
+    const password = 'abc'
+
+    request(app)
+      .post('/users')
+      .send({email, password})
+      .expect(400)
+      .end(done)
+  })
+
+  it('Should not create user if email in use', done => {
+    const email = 'pdut@gmail.com'
+    const password = 'abc123'
+
+    request(app)
+      .post('/users')
+      .send({email, password})
+      .expect(400)
       .end(done)
   })
 })
