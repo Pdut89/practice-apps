@@ -91,7 +91,7 @@ app.patch('/todos/:id', (req, res) => {
 })
 
 app.post('/users', (req, res) => {
-  const {email, password, tokens} = req.body
+  const {email, password} = req.body
   const user = new User({email, password})
 
   user.save()
@@ -120,13 +120,18 @@ app.post('/users/login', (req, res) => {
     .catch(err => {
       res.status(401).send(err)
     })
-
-
-
 })
 
 app.get('/users/me', authenticate, (req, res) => {
   res.send(req.user)
+})
+
+app.delete('/users/me/token', authenticate, (req,res) => {
+  req.user.removeToken(req.token).then(() => {
+    res.status(200).send()
+  }, () => {
+    res.status(400).send()
+  })
 })
 
 app.listen(port, () => {

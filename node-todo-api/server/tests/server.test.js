@@ -62,7 +62,7 @@ describe('POST /todos', () => {
         expect(res.body.text).toBe(text)
       })
       .end((err, res) => {
-        if (err) return done(err)
+        if (err) done(err)
 
         Todo.find().then(todos => {
           expect(todos.length).toBe(3)
@@ -79,7 +79,7 @@ describe('POST /todos', () => {
       .send({})
       .expect(400)
       .end((err) => {
-        if (err) return done(err)
+        if (err) done(err)
       })
 
       Todo.find().then(todos => {
@@ -101,14 +101,12 @@ describe('DELETE /todos/:id', () => {
         expect(res.body.todo.text).toBe(todos[0].text)
       })
       .end((err, res) => {
-        if (err) return done(err)
+        if (err) done(err)
 
         Todo.findById(hexId).then(todo => {
           expect(todo).toNotExist
           done()
-        }).catch(err => {
-          done(err)
-        })
+        }).catch(err => done(err))
       })
   })
 
@@ -195,7 +193,7 @@ describe('POST /users', () => {
         expect(res.body.email).toBe(email)
       })
       .end(err => {
-        if(err) return done(err)
+        if(err) done(err)
 
         User.findOne({email})
           .then(user => {
@@ -229,5 +227,71 @@ describe('POST /users', () => {
       .send({email, password})
       .expect(400)
       .end(done)
+  })
+})
+
+
+describe('POST /users/login', () => {
+
+  it('Should login user and return an auth token', done => {
+    request(app)
+      .post('/users/login')
+      .send({
+        email: users[1].email,
+        password: users[1].password
+      })
+      .expect(200)
+      .expect(res => {
+        expect(res.headers['x-auth']).toBeTruthy()
+      })
+      .end((err, res) => {
+        if(err) done(err)
+
+        User.findById(users[1]._id).then(user => {
+          expect(user.tokens[0]).toMatchObject({
+            access: 'auth',
+            token: res.headers['x-auth']
+          })
+          done()
+        }).catch(err => done(err))
+      })
+  })
+
+  it('Should reject an invalid login request', done => {
+    request(app)
+      .post('/users/login')
+      .send({
+        email: users[1].email,
+        password: users[1].password + '1'
+      })
+      .expect(401)
+      .expect(res => {
+        expect(res.headers['x-auth']).toBeFalsy()
+      })
+      .end((err, res) => {
+        if(err) done(err)
+
+        User.findById(users[1]._id).then(user => {
+          expect(user.tokens.length).toBeFalsy()
+          done()
+        }).catch(err => done(err))
+      })
+  })
+})
+
+describe('DELETE /users/me/token', () => {
+  it('Should remove auth token on logout', done => {
+    request(app)
+    .delete('/users/me/token')
+    .set('x-auth', users[0].tokens[0].token)
+    .expect(200)
+    .end((err, res) => {
+      if(err) done(err)
+
+      User.findById(users[0]._id).then(user => {
+        expect(user.tokens.length).toBeFalsy()
+        done()
+      }).catch(err => done(err))
+    })
   })
 })

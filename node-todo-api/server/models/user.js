@@ -2,6 +2,7 @@ const mongoose = require('mongoose')
 const validator = require('validator')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
+const secret = 'abc123'
 
 
 const UserSchema = new mongoose.Schema({
@@ -44,12 +45,21 @@ UserSchema.methods.toJSON = function() {
 UserSchema.methods.generateAuthToken = function() {
   const user = this
   const access = 'auth'
-  const token = jwt.sign({_id: user._id.toHexString(), access}, 'abc123').toString()
+  const token = jwt.sign({_id: user._id.toHexString(), access}, secret).toString()
 
   user.tokens = user.tokens.concat([{access, token}])
 
   return user.save()
     .then(() => token)
+}
+
+UserSchema.methods.removeToken = function(token) {
+  const user = this
+  return user.update({
+    $pull: {
+      tokens: {token}
+    }
+  })
 }
 
 // Statics makes it a model method, otherwide it's an instance method
@@ -58,7 +68,7 @@ UserSchema.statics.findByToken = function(token) {
   let decoded = undefined
 
   try {
-    decoded = jwt.verify(token, 'abc123')
+    decoded = jwt.verify(token, secret)
   } catch (err) {
     return Promise.reject(err)
   }
