@@ -14,9 +14,10 @@ const port = process.env.PORT
 
 app.use(bodyParser.json())
 
-app.post('/todos', (req, res) => {
+app.post('/todos', authenticate, (req, res) => {
   const todo = new Todo({
-    text: req.body.text
+    text: req.body.text,
+    _creator: req.user._id
   })
 
   todo.save()
@@ -29,45 +30,53 @@ app.post('/todos', (req, res) => {
 
 })
 
-app.get('/todos', (req, res) => {
-  Todo.find()
-    .then(todos => {
-      res.send({todos})
-    })
-    .catch(err => {
-      res.status(400).send(err)
-    })
+app.get('/todos', authenticate, (req, res) => {
+  Todo.find({
+    _creator: req.user._id
+  })
+  .then(todos => {
+    res.send({todos})
+  })
+  .catch(err => {
+    res.status(400).send(err)
+  })
 })
 
-app.get('/todos/:id', (req, res) => {
+app.get('/todos/:id', authenticate, (req, res) => {
   const {id} = req.params
   if (!ObjectId.isValid(id)) return res.status(400).send('Invalid id')
 
-  Todo.findById(id)
-    .then(todo => {
-      if(!todo) return res.status(400).send('No match found')
-      res.send(todo)
-    })
-    .catch(err => {
-      res.status(400).send(err)
-    })
+  Todo.findOne({
+    _id: id,
+    _creator: req.user._id
+  })
+  .then(todo => {
+    if(!todo) return res.status(400).send('No match found')
+    res.send(todo)
+  })
+  .catch(err => {
+    res.status(400).send(err)
+  })
 })
 
-app.delete('/todos/:id', (req, res) => {
+app.delete('/todos/:id', authenticate, (req, res) => {
   const {id} = req.params
   if (!ObjectId.isValid(id)) return res.status(400).send('Invalid id')
 
-  Todo.findByIdAndDelete(id)
-    .then(todo => {
-      if(!todo) return res.status(400).send('No match found')
-      res.send({todo})
-    })
-    .catch(err => {
-      res.status(400).send(err)
-    })
+  Todo.findOneAndDelete({
+    _id: id,
+    _creator: req.user._id
+  })
+  .then(todo => {
+    if(!todo) return res.status(400).send('No match found')
+    res.send({todo})
+  })
+  .catch(err => {
+    res.status(400).send(err)
+  })
 })
 
-app.patch('/todos/:id', (req, res) => {
+app.patch('/todos/:id', authenticate, (req, res) => {
   const {id} = req.params
   const {body} = req
 
@@ -80,14 +89,17 @@ app.patch('/todos/:id', (req, res) => {
     body.completedAt = null
   }
 
-  Todo.findByIdAndUpdate(id, {$set: body}, {new: true})
-    .then(todo => {
-      if (!todo) return res.status(400).send()
-      res.send({todo})
-    })
-    .catch(err => {
-      res.status(400).send()
-    })
+  Todo.findOneAndUpdate({
+    _id: id,
+    _creator: req.user._id
+  }, {$set: body}, {new: true})
+  .then(todo => {
+    if (!todo) return res.status(400).send()
+    res.send({todo})
+  })
+  .catch(err => {
+    res.status(400).send()
+  })
 })
 
 app.post('/users', (req, res) => {
