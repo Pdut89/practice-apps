@@ -35,18 +35,23 @@ $(document).ready(function(){
 
   $('#message-form').on('submit', function(event) {
     event.preventDefault()
+    var $input = $('[name=message]')
 
     socket.emit('createMessage', {
       from: 'User',
-      text: $('[name=message]').val()
+      text: $input.val()
     }, function(data) {
-      console.log(data, 'message sent')
+      $input.val('')
     })
   })
 
  $locationButton.on('click', function() {
    if(!navigator.geolocation) return alert('Location not supported by browser')
+
+   $locationButton.attr('disabled', 'disabled').text('Sending location...')
+
    navigator.geolocation.getCurrentPosition(function(position) {
+     $locationButton.removeAttr('disabled').text('Send Location')
      socket.emit('createLocationMessage', {
        latitude: position.coords.latitude,
        longitude: position.coords.longitude
