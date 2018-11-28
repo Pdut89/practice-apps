@@ -49,6 +49,16 @@ $(document).ready(function() {
     scrollToBottom()
   })
 
+  socket.on('updateUserList', function(users) {
+    const $ol = $('<ol></ol>')
+
+    users.forEach(function(user) {
+      $ol.append($('<li></li>').text(user))
+    })
+
+    $('#users').html($ol)
+  })
+
   socket.on('newLocationMessage', function(message) {
     var formattedTime = moment(message.createdAt).format('h:mm a')
     var template = $('#location-message-template').html()
@@ -67,7 +77,6 @@ $(document).ready(function() {
     var $input = $('[name=message]')
 
     socket.emit('createMessage', {
-      from: 'User',
       text: $input.val()
     }, function(data) {
       $input.val('')
